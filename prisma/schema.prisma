@@ -1,0 +1,91 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+// 2. Model User (Buat Auth & Yang Booking)
+model User {
+  id        String    @id @default(uuid()) // Kita pake UUID biar susah ditebak
+  email     String    @unique
+  password  String    // Ingat: Ini Hashed Password
+  name      String?
+  
+  bookings  Booking[] // Relasi: Satu user bisa punya banyak booking
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// 3. Model Event (Konsernya)
+model Event {
+  id          Int      @id @default(autoincrement())
+  name        String
+  date        DateTime
+  location    String?
+  
+  seats       Seat[]   // Relasi: Satu event punya banyak kursi
+  createdAt   DateTime @default(now())
+}
+
+// 4. Model Seat (BATTLEGROUND-NYA DISINI)
+model Seat {
+  id          Int        @id @default(autoincrement())
+  seatNumber  String     // Contoh: "A1", "VIP-01"
+  price       Int        @default(0)
+  
+  eventId     Int
+  event       Event      @relation(fields: [eventId], references: [id])
+  
+  bookings    Booking[]  // History booking kursi ini
+
+  // --- BAGIAN PENTING BUAT WAR TIKET ---
+  status      SeatStatus @default(AVAILABLE)
+  
+  // Version: Ini senjata Optimistic Locking kita.
+  // Tiap ada update, angka ini nambah. Kalau pas mau update angkanya beda, berarti keduluan orang.
+  version     Int        @default(0) 
+  // -------------------------------------
+
+  // Mastiin gak ada nomor kursi kembar di satu event
+  @@unique([eventId, seatNumber]) 
+}
+
+// 5. Model Booking (Tiket/Transaksinya)
+model Booking {
+  id        Int           @id @default(autoincrement())
+  
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  
+  seatId    Int
+  seat      Seat          @relation(fields: [seatId], references: [id])
+  
+  status    BookingStatus @default(PENDING)
+  
+  expiresAt DateTime      // Batas waktu bayar (TTL)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+// 6. Enums (Pilihan Status Tetap)
+enum SeatStatus {
+  AVAILABLE  // Bisa diambil
+  ON_HOLD    // Lagi proses booking/nunggu bayar
+  BOOKED     // Udah sah punya orang
+}
+
+enum BookingStatus {
+  PENDING    // Menunggu pembayaran
+  PAID       // Sukses
+  CANCELLED  // Batal / Expired
+  FAILED     // Error sistem
+}

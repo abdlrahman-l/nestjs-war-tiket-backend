@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # 1. DATABASE UTAMA (PostgreSQL)
+  postgres:
+    image: postgres:16-alpine # Pake alpine biar size-nya kecil/ringan
+    container_name: war_tiket_db
+    restart: always
+    ports:
+      - "5438:5432" # Port Laptop : Port Container
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword 
+      POSTGRES_DB: war_tiket_db
+    volumes:
+      # Ini PENTING: Biar kalau container mati, data lo gak ilang.
+      # Data bakal disimpen di folder 'pg_data' di laptop lo.
+      - ./pg_data:/var/lib/postgresql/data
+
+  # 2. DATABASE ANTRIAN (Redis) - Persiapan buat Level 2
+  # redis:
+  #   image: redis:alpine
+  #   container_name: war_tiket_redis
+  #   restart: always
+  #   ports:
+  #     - "6379:6379"
+  #   command: redis-server --save 20 1 --loglevel warning 
+  #   # command diatas biar redis agak rajin nyimpen data ke disk
+
+  # # 3. (Optional) GUI Buat liat DB di browser
+  # # Kalau lo males install TablePlus/DBeaver, pake ini aja.
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: war_tiket_admin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
