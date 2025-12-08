@@ -4,7 +4,6 @@ import { AuthGuard } from '@nestjs/passport';
 import type { UserCreateInput } from 'generated/prisma/models';
 import { GetUser } from 'src/auth/get-user.decorator';
 
-@UseGuards(AuthGuard('jwt'))
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -14,6 +13,7 @@ export class UserController {
     return this.userService.create(createUserDto);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get(':email')
   findOne(@Param('email') email: string, @GetUser() userId: string) {
     console.log({
