@@ -14,13 +14,24 @@ import { UpdateBookingDto } from './dto/update-booking.dto';
 import { GetUser } from 'src/auth/get-user.decorator';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 import { AuthGuard } from '@nestjs/passport';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
+@ApiTags('Bookings')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'))
 @Controller('booking')
 export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
 
   @Post()
-  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Nembak kursi (War Tiket)' }) // 3. Penjelasan Endpoint
+  @ApiResponse({ status: 201, description: 'Berhasil dapet kursi' })
+  @ApiResponse({ status: 409, description: 'Gagal (Conflict/Kalah cepet)' })
   @ResponseMessage('Kursi berhasil diamankan! Segera bayar dalam 5 menit.')
   create(
     @Body() createBookingDto: CreateBookingDto,
