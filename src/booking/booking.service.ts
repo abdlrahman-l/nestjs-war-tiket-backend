@@ -7,6 +7,7 @@ import {
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class BookingService {
@@ -84,5 +85,61 @@ export class BookingService {
 
   remove(id: number) {
     return `This action removes a #${id} booking`;
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async handleCron() {
+    const now = new Date();
+
+    // find pending booking and expiresAt < now
+    const expiredBookings = await this.prisma.booking.findMany({
+      where: {
+        status: 'PENDING',
+        expiresAt: {
+          lt: now, // expires time < now
+        },
+      },
+      include: {
+        seat: true, // include seat data as well
+      },
+    });
+
+    console.log(
+      `Found ${expiredBookings.length} expired bookings`,
+      expiredBookings,
+    );
+
+    if (expiredBookings.length === 0) {
+      return;
+    }
+
+    await Promise.all(
+      expiredBookings.map(async (booking) => {
+        return this.prisma.$transaction(async (tx) => {
+          // update status booking jadi cancelled
+          await tx.booking.update({
+            where: {
+              id: booking.id,
+            },
+            data: {
+              status: 'CANCELLED',
+            },
+          });
+
+          // balikin kursi jadi available
+          await tx.seat.update({
+            where: {
+              id: booking.seatId,
+            },
+            data: {
+              status: 'AVAILABLE',
+              version: {
+                increment: 1,
+              },
+            },
+          });
+        });
+      }),
+    );
   }
 }

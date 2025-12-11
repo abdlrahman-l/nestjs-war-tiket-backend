@@ -9,9 +9,17 @@ import { BookingModule } from './booking/booking.module';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { ResponseWrapperInterceptor } from './common/interceptors/response-wrapper.interceptors';
 import { GlobalExceptionFilter } from './common/filters/http-exceptions.filter';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
-  imports: [PrismaModule, AuthModule, EventModule, UserModule, BookingModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    EventModule,
+    UserModule,
+    BookingModule,
+    ScheduleModule.forRoot(),
+  ],
   controllers: [AppController],
   providers: [
     AppService,
